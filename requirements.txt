@@ -1,0 +1,14 @@
+# Core dependencies
+Pillow>=9.0.0
+numpy>=1.20.0
+
+# JPEG XL support (required for optimal compression)
+pillow-jxl-plugin
+
+# Optional: Better color matching with LAB color space
+# Uncomment if you want perceptually uniform color matching
+# scikit-image
+
+# Optional: Significant performance boost (10-50x faster dithering)
+# Uncomment if you want faster processing
+# numba
