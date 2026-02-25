@@ -7,6 +7,10 @@ Apply lossy transforms (palette reduction, dithering, pixelation), then write th
 
 An interactive image transformation tool that converts any image to use an expanded transgender flag palette with perceptually uniform color matching for beautiful, natural-looking results. It even renames the files for you!
 
+<p align="center">
+  <img src="Screenshot%202026-02-24%20202456.png" />
+</p>
+
 ### Features
 
 - **Expanded Trans Flag Palette (7 colors)** – Smoother gradients while staying true to trans flag colors:
