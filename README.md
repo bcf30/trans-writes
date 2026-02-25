@@ -35,7 +35,7 @@ An interactive image transformation tool that converts any image to use an expan
   - Numba JIT compilation for 10-50x faster dithering (optional)
   - Parallel processing for palette application
 
-- **Pixelation** – Create mosaic effects with block sizes 1-16
+- **Pixelation** – Create mosaic effects with block sizes 1-32
 - **Live Preview** – See changes instantly
 - **File Size Comparison** – View original size, compressed size, and savings
 - **Multiple Export Formats**:
