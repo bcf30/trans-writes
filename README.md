@@ -11,6 +11,18 @@ An interactive image transformation tool that converts any image to use an expan
   <img src="Screenshot%202026-02-24%20202456.png" />
 </p>
 
+More examples of before-after, varying dithering and file format:
+
+<p align="center">
+  <img src="IMG_1073.jpg" width="45%" />
+  <img src="example2.png" width="45%" />
+</p>
+
+<p align="center">
+  <img src="gix18ff6y8gf1.jpg" width="45%" />
+  <img src="example.webp" width="45%" />
+</p>
+
 ### Features
 
 - **Expanded Trans Flag Palette (7 colors)** – Smoother gradients while staying true to trans flag colors:
@@ -32,10 +44,10 @@ An interactive image transformation tool that converts any image to use an expan
   - Ordered/Bayer 4×4 (crosshatch pattern)
 
 - **Optimized Performance**:
-  - Numba JIT compilation for 10-50x faster dithering (optional)
+  - Numba JIT compilation for 10-50x faster dithering (optional if you want to wait 20 years for any image larger than 1mb)
   - Parallel processing for palette application
 
-- **Pixelation** – Create mosaic effects with block sizes 1-16
+- **Pixelation** – Create mosaic effects with block sizes 1-32
 - **Live Preview** – See changes instantly
 - **File Size Comparison** – View original size, compressed size, and savings
 - **Multiple Export Formats**:
