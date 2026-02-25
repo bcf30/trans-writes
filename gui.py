@@ -114,19 +114,25 @@ class TransWritesApp:
         self._create_info_panel()
     
     def _create_flag_banner(self) -> None:
-        """trans flag banner - 3 stripes"""
+        """trans flag banner - 5 stripes: blue-pink-white-pink-blue"""
         banner_frame = tk.Frame(self.main_frame, height=10)
         banner_frame.pack(fill=tk.X)
         banner_frame.pack_propagate(False)
         
-        stripe_blue = tk.Frame(banner_frame, bg=COLOR_LIGHT_BLUE, height=10)
-        stripe_blue.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        stripe_blue_left = tk.Frame(banner_frame, bg=COLOR_LIGHT_BLUE, height=10)
+        stripe_blue_left.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         
-        stripe_pink = tk.Frame(banner_frame, bg=COLOR_LIGHT_PINK, height=10)
-        stripe_pink.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        stripe_pink_left = tk.Frame(banner_frame, bg=COLOR_LIGHT_PINK, height=10)
+        stripe_pink_left.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         
         stripe_white = tk.Frame(banner_frame, bg=COLOR_WHITE, height=10)
         stripe_white.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        
+        stripe_pink_right = tk.Frame(banner_frame, bg=COLOR_LIGHT_PINK, height=10)
+        stripe_pink_right.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        
+        stripe_blue_right = tk.Frame(banner_frame, bg=COLOR_LIGHT_BLUE, height=10)
+        stripe_blue_right.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
     
     def _create_title_area(self) -> None:
         """title area with app name"""
@@ -581,20 +587,37 @@ class TransWritesApp:
             messagebox.showinfo("Info", "No image to save.")
             return
         
+        # Get the selected format from the footer dropdown
+        selected_format = self.format_var.get().lower()
+        default_ext = f".{selected_format}"
+        
+        # Build filetypes list with selected format first (Windows uses first as default)
         filetypes = []
-        if self._has_jxl:
-            filetypes.append(("JPEG XL files (lossless)", "*.jxl"))
-        filetypes.extend([
-            ("PNG files", "*.png"),
-            ("BMP files", "*.bmp"),
-            ("WebP files (lossless)", "*.webp"),
-        ])
+        
+        # Add selected format first
+        format_map = {
+            'png': ("PNG files", "*.png"),
+            'webp': ("WebP files (lossless)", "*.webp"),
+            'jxl': ("JPEG XL files (lossless)", "*.jxl"),
+            'bmp': ("BMP files", "*.bmp")
+        }
+        
+        if selected_format in format_map:
+            filetypes.append(format_map[selected_format])
+        
+        # Add other formats
+        for fmt, desc in format_map.items():
+            if fmt != selected_format:
+                if fmt == 'jxl' and not self._has_jxl:
+                    continue
+                filetypes.append(desc)
+        
         filetypes.append(("All files", "*.*"))
         
         file_path = filedialog.asksaveasfilename(
             title="Save Image",
             initialfile="TRANS RIGHTS!!!!",
-            defaultextension=".jxl" if self._has_jxl else ".png",
+            defaultextension=default_ext,
             filetypes=filetypes
         )
         
