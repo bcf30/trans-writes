@@ -37,7 +37,7 @@ More examples of before-after, varying dithering and file format:
   - JPEG XL (lossless, if supported)
   - please lock in and help defeat the monopoly of Google trying to kill jpegxl
 
-#### Requirements
+### Requirements
 
 - Python 3.8+
 - Pillow (PIL)
