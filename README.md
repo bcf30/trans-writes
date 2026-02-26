@@ -1,6 +1,6 @@
 # trans-writes
 
-**trans-writes** (lossy) transforms images and writes them to your disk. 
+**trans-writes** (lossily) transforms images and writes them to your disk. 
 
 An interactive image transformation tool that converts any image to use an expanded transgender flag palette with perceptually uniform color matching. It even renames the files for you!
 
