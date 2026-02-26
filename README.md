@@ -1,5 +1,4 @@
 # trans-writes
-## Proudly vibe-coded
 
 **trans-writes** (lossy) transforms images and writes them to your disk. 
 
@@ -85,3 +84,5 @@ Sharper look with less error distribution:
 
 #### Ordered (Bayer 4×4)
 Crosshatch pattern using threshold matrix.
+
+Proudly made using AI.
