@@ -1,11 +1,3 @@
-"""
-transforms.py - image transformation algorithms
-
-uses an expanded trans flag palette with perceptually uniform color matching.
-has numba jit for speed, falls back to numpy if not available.
-"""
-
-from typing import List, Tuple
 import numpy as np
 from PIL import Image
 
@@ -31,7 +23,6 @@ except ImportError:
     prange = range
 
 
-# bayer matrix for ordered dithering
 BAYER_MATRIX = np.array([
     [ 0,  8,  2, 10],
     [12,  4, 14,  6],
@@ -39,9 +30,7 @@ BAYER_MATRIX = np.array([
     [15,  7, 13,  5]
 ], dtype=np.float32) / 16.0
 
-# cached palette arrays for performance
 _TRANS_PALETTE_ARRAY = np.array(TRANS_PALETTE, dtype=np.uint8)
-_INVERTED_PALETTE_ARRAY = np.array(INVERTED_PALETTE, dtype=np.uint8)
 
 
 @jit(nopython=True, cache=True)
@@ -289,7 +278,7 @@ def dither_ordered(image: Image.Image, palette: list = None) -> Image.Image:
 def _dither_ordered_fallback(pixels: np.ndarray, palette: np.ndarray) -> np.ndarray:
     """ordered dithering without numba"""
     height, width = pixels.shape[:2]
-    output = np.zeros_like(pixels, dtype=np.uint8)
+    output = np.empty_like(pixels, dtype=np.uint8)
     
     for y in range(height):
         for x in range(width):
@@ -306,13 +295,16 @@ def pixelate(image: Image.Image, block_size: int) -> Image.Image:
     """pixelate using nearest-neighbor resampling"""
     if block_size <= 1:
         return image.copy()
-    
+
     width, height = image.size
-    small_w = max(1, width // block_size)
-    small_h = max(1, height // block_size)
-    
-    small = image.resize((small_w, small_h), Image.NEAREST)
-    return small.resize((width, height), Image.NEAREST)
+    downsampled_width = max(1, width // block_size)
+    downsampled_height = max(1, height // block_size)
+
+    downsampled_image = image.resize(
+        (downsampled_width, downsampled_height),
+        Image.NEAREST
+    )
+    return downsampled_image.resize((width, height), Image.NEAREST)
 
 
 def apply_transforms(
@@ -322,29 +314,22 @@ def apply_transforms(
     invert: bool = False
 ) -> Image.Image:
     """apply all transformations - dithering then pixelation"""
-    # use cached palette arrays for performance
-    if invert:
-        palette_array = _INVERTED_PALETTE_ARRAY
-        palette_list = INVERTED_PALETTE
-    else:
-        palette_array = _TRANS_PALETTE_ARRAY
-        palette_list = None  # None means use default (TRANS_PALETTE)
-    
+    palette = INVERTED_PALETTE if invert else None
+
     if image.mode != 'RGB':
         result = image.convert('RGB')
     else:
         result = image.copy()
     
     if dithering == 'floyd_steinberg':
-        result = dither_floyd_steinberg(result, palette_list if invert else None)
+        result = dither_floyd_steinberg(result, palette)
     elif dithering == 'atkinson':
-        result = dither_atkinson(result, palette_list if invert else None)
+        result = dither_atkinson(result, palette)
     elif dithering == 'ordered':
-        result = dither_ordered(result, palette_list if invert else None)
+        result = dither_ordered(result, palette)
     else:
-        result = apply_trans_palette(result, palette_list if invert else None)
-    
-    # apply pixelation
+        result = apply_trans_palette(result, palette)
+
     if pixelation > 1:
         result = pixelate(result, pixelation)
     

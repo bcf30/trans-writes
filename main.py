@@ -1,57 +1,48 @@
-"""
-main.py - entry point for trans-writes
-
-run with: python main.py
-"""
-
 import sys
 import tkinter as tk
 from tkinter import messagebox
 
-from gui import TransWritesApp
-
 
 def check_dependencies() -> bool:
-    """check that required deps are installed, return True if all good"""
-    missing = []
+    """Return whether the packages needed to start the app are installed."""
+    missing_packages = []
     
     try:
-        from PIL import Image
+        import PIL
     except ImportError:
-        missing.append("Pillow")
-    
+        missing_packages.append("Pillow")
+
     try:
         import numpy
     except ImportError:
-        missing.append("numpy")
-    
-    if missing:
+        missing_packages.append("numpy")
+
+    if missing_packages:
         print("Missing required dependencies:")
-        for dep in missing:
-            print(f"  - {dep}")
-        print("\nInstall with: pip install " + " ".join(missing))
+        for package_name in missing_packages:
+            print(f"  - {package_name}")
+        print("\nInstall with: pip install " + " ".join(missing_packages))
         return False
     
     return True
 
 
 def main() -> None:
-    """main entry point - creates window and runs the app"""
+    """Create the window and run the app."""
     if not check_dependencies():
         sys.exit(1)
-    
+
+    from gui import TransWritesApp
+
     root = tk.Tk()
-    
-    # icon setting placeholder for future implementation
-    # root.iconbitmap('icon.ico')
-    
+
     try:
-        app = TransWritesApp(root)
+        application = TransWritesApp(root)
         root.mainloop()
-    except Exception as e:
+    except Exception as error:
         messagebox.showerror(
             "Error",
-            f"An unexpected error occurred:\n{str(e)}"
+            f"An unexpected error occurred:\n{str(error)}"
         )
         sys.exit(1)
 

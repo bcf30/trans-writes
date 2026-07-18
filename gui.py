@@ -1,28 +1,15 @@
-"""
-gui.py - main GUI for trans-writes
-
-builds the UI with trans flag theming. images get converted using
-an expanded trans flag palette with perceptually uniform color matching.
-"""
-
 import os
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from typing import Optional
 from PIL import Image, ImageTk
 
-# jxl support is optional
-try:
-    import pillow_jxl
-except ImportError:
-    pass
-
 from utils import (
     TRANS_PALETTE,
     TRANS_LIGHT_BLUE_HEX,
     TRANS_LIGHT_PINK_HEX,
     TRANS_WHITE_HEX,
-    HAS_SKIMAGE,
+    HAS_JXL,
     estimate_png_size,
     estimate_webp_size,
     estimate_jxl_size,
@@ -30,14 +17,12 @@ from utils import (
     get_file_size,
     format_file_size,
     calculate_savings_percentage,
-    pil_to_photoimage,
     resize_for_preview,
     SUPPORTED_IMAGE_FORMATS
 )
 from transforms import apply_transforms, get_palette_info
 
 
-# colors
 COLOR_LIGHT_BLUE = TRANS_LIGHT_BLUE_HEX    # #5bcefa
 COLOR_LIGHT_PINK = TRANS_LIGHT_PINK_HEX    # #f5a9b8
 COLOR_WHITE = TRANS_WHITE_HEX              # #ffffff
@@ -57,27 +42,19 @@ class TransWritesApp:
         self.root.minsize(800, 600)
         self.root.configure(bg=COLOR_FRAME_BG)
         
-        # image storage
         self.original_image: Optional[Image.Image] = None
-        self.original_file_path: Optional[str] = None
         self.original_file_size: int = 0
         self.transformed_image: Optional[Image.Image] = None
         self.preview_photo: Optional[ImageTk.PhotoImage] = None
-        self._estimated_sizes: dict = {}
-        
-        # settings
+        self._estimated_size_by_format: dict[str, int] = {}
+
         self.dithering_method = tk.StringVar(value='none')
         self.pixelation_size = tk.IntVar(value=1)
         self.invert_colors = tk.BooleanVar(value=False)
-        
-        # cache jxl support check
-        self._has_jxl = self._check_jxl_support()
-        
-        # build the UI
+
         self._setup_styles()
         self._build_ui()
-        
-        # show placeholder after window renders
+
         self.root.after(100, self._show_placeholder)
         
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
@@ -119,20 +96,15 @@ class TransWritesApp:
         banner_frame.pack(fill=tk.X)
         banner_frame.pack_propagate(False)
         
-        stripe_blue_left = tk.Frame(banner_frame, bg=COLOR_LIGHT_BLUE, height=10)
-        stripe_blue_left.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        
-        stripe_pink_left = tk.Frame(banner_frame, bg=COLOR_LIGHT_PINK, height=10)
-        stripe_pink_left.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        
-        stripe_white = tk.Frame(banner_frame, bg=COLOR_WHITE, height=10)
-        stripe_white.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        
-        stripe_pink_right = tk.Frame(banner_frame, bg=COLOR_LIGHT_PINK, height=10)
-        stripe_pink_right.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        
-        stripe_blue_right = tk.Frame(banner_frame, bg=COLOR_LIGHT_BLUE, height=10)
-        stripe_blue_right.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        for stripe_color in (
+            COLOR_LIGHT_BLUE,
+            COLOR_LIGHT_PINK,
+            COLOR_WHITE,
+            COLOR_LIGHT_PINK,
+            COLOR_LIGHT_BLUE,
+        ):
+            stripe = tk.Frame(banner_frame, bg=stripe_color, height=10)
+            stripe.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
     
     def _create_title_area(self) -> None:
         """title area with app name"""
@@ -241,11 +213,10 @@ class TransWritesApp:
         )
         method_label.pack(anchor=tk.W)
         
-        # color swatches
         swatch_frame = ttk.Frame(section_frame, style='Trans.TFrame')
         swatch_frame.pack(fill=tk.X, pady=5)
         
-        for i, color in enumerate(TRANS_PALETTE):
+        for color in TRANS_PALETTE:
             hex_color = "#{:02x}{:02x}{:02x}".format(*color)
             swatch = tk.Frame(
                 swatch_frame, 
@@ -321,7 +292,6 @@ class TransWritesApp:
         self.pixel_slider.pack(side=tk.LEFT, padx=5)
         self.pixel_slider.configure(command=self._on_pixel_slider_change)
         
-        # entry for precise input
         self.pixel_entry = tk.Entry(
             slider_frame,
             width=3,
@@ -447,14 +417,8 @@ class TransWritesApp:
         canvas_frame.grid_rowconfigure(0, weight=1)
         canvas_frame.grid_columnconfigure(0, weight=1)
         
-        # zoom state
         self.zoom_level = 1.0
-        self.pan_offset_x = 0
-        self.pan_offset_y = 0
-        self.drag_start_x = 0
-        self.drag_start_y = 0
-        
-        # Bind mouse events for zoom
+
         self.preview_canvas.bind('<MouseWheel>', self._on_mouse_wheel)
         self.preview_canvas.bind('<Button-4>', self._on_mouse_wheel)
         self.preview_canvas.bind('<Button-5>', self._on_mouse_wheel)
@@ -547,9 +511,7 @@ class TransWritesApp:
             font=('Terminal', 12)
         )
         self.savings_label.pack(side=tk.LEFT, padx=5)
-    
-    # event handlers
-    
+
     def _load_image(self) -> None:
         """load image button handler"""
         file_path = filedialog.askopenfilename(
@@ -563,7 +525,6 @@ class TransWritesApp:
         try:
             self.original_image = Image.open(file_path)
             self.original_image.load()
-            self.original_file_path = file_path
             self.original_file_size = get_file_size(file_path)
             
             file_name = os.path.basename(file_path)
@@ -578,8 +539,8 @@ class TransWritesApp:
                 text=format_file_size(self.original_file_size)
             )
             
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to load image: {str(e)}")
+        except Exception as error:
+            messagebox.showerror("Error", f"Failed to load image: {str(error)}")
     
     def _save_image(self) -> None:
         """save image button handler"""
@@ -587,37 +548,31 @@ class TransWritesApp:
             messagebox.showinfo("Info", "No image to save.")
             return
         
-        # Get the selected format from the footer dropdown
         selected_format = self.format_var.get().lower()
-        default_ext = f".{selected_format}"
-        
-        # Build filetypes list with selected format first (Windows uses first as default)
-        filetypes = []
-        
-        # Add selected format first
-        format_map = {
+        default_extension = f".{selected_format}"
+
+        # Windows uses the first entry as the default file type.
+        format_filetypes = {
             'png': ("PNG files", "*.png"),
             'webp': ("WebP files (lossless)", "*.webp"),
             'jxl': ("JPEG XL files (lossless)", "*.jxl"),
             'bmp': ("BMP files", "*.bmp")
         }
-        
-        if selected_format in format_map:
-            filetypes.append(format_map[selected_format])
-        
-        # Add other formats
-        for fmt, desc in format_map.items():
-            if fmt != selected_format:
-                if fmt == 'jxl' and not self._has_jxl:
-                    continue
-                filetypes.append(desc)
-        
+        filetypes = [format_filetypes[selected_format]]
+
+        for format_name, filetype in format_filetypes.items():
+            if format_name == selected_format:
+                continue
+            if format_name == 'jxl' and not HAS_JXL:
+                continue
+            filetypes.append(filetype)
+
         filetypes.append(("All files", "*.*"))
         
         file_path = filedialog.asksaveasfilename(
             title="Save Image",
             initialfile="TRANS RIGHTS!!!!",
-            defaultextension=default_ext,
+            defaultextension=default_extension,
             filetypes=filetypes
         )
         
@@ -625,50 +580,40 @@ class TransWritesApp:
             return
         
         try:
-            ext = os.path.splitext(file_path)[1].lower()
-            
-            if ext == '.png':
+            output_extension = os.path.splitext(file_path)[1].lower()
+
+            if output_extension == '.png':
                 self.transformed_image.save(file_path, format='PNG', optimize=True)
-            elif ext == '.bmp':
+            elif output_extension == '.bmp':
                 self.transformed_image.save(file_path, format='BMP')
-            elif ext == '.webp':
+            elif output_extension == '.webp':
                 self.transformed_image.save(file_path, format='WEBP', lossless=True)
-            elif ext == '.jxl':
+            elif output_extension == '.jxl':
                 self._save_jxl(file_path)
             else:
                 self.transformed_image.save(file_path, format='PNG', optimize=True)
             
             messagebox.showinfo("Success", f"Image saved to:\n{file_path}")
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to save: {str(e)}")
-    
-    def _check_jxl_support(self) -> bool:
-        """check if jxl is available"""
-        try:
-            import pillow_jxl
-            return True
-        except ImportError:
-            return False
-    
+        except Exception as error:
+            messagebox.showerror("Error", f"Failed to save: {str(error)}")
+
     def _save_jxl(self, file_path: str) -> None:
         """save image as lossless jpeg xl"""
-        try:
-            self.transformed_image.save(file_path, format='JXL', lossless=True)
-        except Exception:
-            raise Exception(
+        if not HAS_JXL:
+            raise RuntimeError(
                 "JPEG XL support not available. "
                 "Install with: pip install pillow-jxl-plugin"
             )
+        self.transformed_image.save(file_path, format='JXL', lossless=True)
     
     def _on_pixel_slider_change(self, value: str) -> None:
         """Handle pixelation slider change."""
         int_value = int(float(value))
-        # Update entry to match slider
         self.pixel_entry.delete(0, tk.END)
         self.pixel_entry.insert(0, str(int_value))
         self._on_settings_change()
     
-    def _on_pixel_entry_change(self, event) -> None:
+    def _on_pixel_entry_change(self, _event) -> None:
         """Handle pixelation entry change - validate and sync with slider."""
         try:
             value = self.pixel_entry.get()
@@ -685,7 +630,7 @@ class TransWritesApp:
             self.pixel_entry.delete(0, tk.END)
             self.pixel_entry.insert(0, str(current))
     
-    def _on_dither_change(self, event) -> None:
+    def _on_dither_change(self, _event) -> None:
         """dithering dropdown changed"""
         selected = self.dither_combo.get()
         self.dithering_method.set(self.dither_mapping.get(selected, 'none'))
@@ -723,7 +668,7 @@ class TransWritesApp:
                 max_height=450
             )
         
-        self.preview_photo = pil_to_photoimage(preview_image)
+        self.preview_photo = ImageTk.PhotoImage(preview_image)
         
         self.preview_canvas.delete("all")
         self.preview_canvas.configure(
@@ -750,50 +695,57 @@ class TransWritesApp:
             self.zoom_level = new_zoom
             self._update_preview()
     
-    def _on_zoom_reset(self, event) -> None:
+    def _on_zoom_reset(self, _event) -> None:
         """reset zoom on double-click"""
         if self.zoom_level != 1.0:
             self.zoom_level = 1.0
             self._update_preview()
     
     def _update_file_info(self) -> None:
-        """update file size info"""
+        """Discard stale estimates and refresh the selected format."""
+        self._estimated_size_by_format.clear()
+        self._update_size_display()
+
+    def _estimate_output_size(self, output_format: str) -> int:
+        if self.transformed_image is None:
+            return 0
+
+        estimators = {
+            'PNG': estimate_png_size,
+            'WebP': estimate_webp_size,
+            'JXL': estimate_jxl_size,
+            'BMP': estimate_bmp_size,
+        }
+        if output_format not in self._estimated_size_by_format:
+            estimator = estimators[output_format]
+            self._estimated_size_by_format[output_format] = estimator(
+                self.transformed_image
+            )
+        return self._estimated_size_by_format[output_format]
+
+    def _update_size_display(self) -> None:
         if self.transformed_image is None:
             self.compressed_size_label.configure(text="-- KB")
-            self.savings_label.configure(text="-- %")
-            self._estimated_sizes = {}
+            self.savings_label.configure(text="-- %", fg=COLOR_WHITE)
             return
-        
-        self._estimated_sizes = {
-            'PNG': estimate_png_size(self.transformed_image),
-            'WebP': estimate_webp_size(self.transformed_image),
-            'JXL': estimate_jxl_size(self.transformed_image),
-            'BMP': estimate_bmp_size(self.transformed_image)
-        }
-        
-        self._update_size_display()
-    
-    def _update_size_display(self) -> None:
-        """update size display for selected format"""
+
         selected_format = self.format_var.get()
-        compressed_size = self._estimated_sizes.get(selected_format, 0)
-        
+        compressed_size = self._estimate_output_size(selected_format)
+
         if selected_format == 'JXL' and compressed_size == 0:
             self.compressed_size_label.configure(text="N/A")
             self.savings_label.configure(text="N/A", fg=COLOR_WHITE)
             return
-        
+
         self.compressed_size_label.configure(text=format_file_size(compressed_size))
-        
         savings = calculate_savings_percentage(self.original_file_size, compressed_size)
-        
+
         if savings >= 0:
             self.savings_label.configure(text=f"{savings:.1f}%", fg=COLOR_WHITE)
         else:
             self.savings_label.configure(text=f"+{abs(savings):.1f}%", fg="#ffcccc")
-    
-    def _on_format_change(self, event) -> None:
-        """format dropdown changed"""
+
+    def _on_format_change(self, _event) -> None:
         self._update_size_display()
     
     def _show_placeholder(self) -> None:
@@ -828,11 +780,10 @@ class TransWritesApp:
     def _clear_image(self) -> None:
         """clear image and reset app"""
         self.original_image = None
-        self.original_file_path = None
         self.original_file_size = 0
         self.transformed_image = None
         self.preview_photo = None
-        self._estimated_sizes = {}
+        self._estimated_size_by_format.clear()
         
         self.dithering_method.set('none')
         self.pixelation_size.set(1)
@@ -872,9 +823,9 @@ class TransWritesApp:
     
     def _toggle_invert(self) -> None:
         """toggle color inversion"""
-        current = self.invert_colors.get()
-        self.invert_colors.set(not current)
-        if not current:
+        was_inverted = self.invert_colors.get()
+        self.invert_colors.set(not was_inverted)
+        if not was_inverted:
             self.invert_button.config(text="♥ Normal Colors ♥")
         else:
             self.invert_button.config(text="♥ Invert Colors ♥")
@@ -888,7 +839,7 @@ class TransWritesApp:
 def run_app() -> None:
     """run the app standalone"""
     root = tk.Tk()
-    app = TransWritesApp(root)
+    application = TransWritesApp(root)
     root.mainloop()
 
 

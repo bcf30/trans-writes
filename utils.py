@@ -1,20 +1,14 @@
-"""
-utils.py - helper functions for trans-writes
-
-file size estimation, image conversion, color matching stuff
-"""
-
 import os
 from io import BytesIO
-from typing import Tuple, List, Optional
+from typing import Optional
 import numpy as np
-from PIL import Image, ImageTk
+from PIL import Image
 
-# jxl support is optional
 try:
-    import pillow_jxl
+    import pillow_jxl as _pillow_jxl  # importing the plugin registers JXL with Pillow
+    HAS_JXL = True
 except ImportError:
-    pass
+    HAS_JXL = False
 
 # scikit-image for LAB color space (perceptually uniform matching)
 try:
@@ -46,7 +40,6 @@ INVERTED_PALETTE = [
     (70, 150, 200),   # darker blue (was darker pink)
 ]
 
-# hex versions for tkinter
 TRANS_LIGHT_BLUE_HEX = "#5bcefa"
 TRANS_LIGHT_PINK_HEX = "#f5a9b8"
 TRANS_WHITE_HEX = "#ffffff"
@@ -112,12 +105,9 @@ def format_file_size(size_bytes: int) -> str:
     """format file size as human readable string"""
     if size_bytes < 1024:
         return f"{size_bytes} bytes"
-    elif size_bytes < 1024 * 1024:
-        size_kb = size_bytes / 1024
-        return f"{size_kb:.1f} KB"
-    else:
-        size_mb = size_bytes / (1024 * 1024)
-        return f"{size_mb:.2f} MB"
+    if size_bytes < 1024 * 1024:
+        return f"{size_bytes / 1024:.1f} KB"
+    return f"{size_bytes / (1024 * 1024):.2f} MB"
 
 
 def calculate_savings_percentage(original_size: int, compressed_size: int) -> float:
@@ -125,11 +115,6 @@ def calculate_savings_percentage(original_size: int, compressed_size: int) -> fl
     if original_size == 0:
         return 0.0
     return ((original_size - compressed_size) / original_size) * 100
-
-
-def pil_to_photoimage(image: Image.Image) -> ImageTk.PhotoImage:
-    """convert PIL image to tkinter PhotoImage"""
-    return ImageTk.PhotoImage(image)
 
 
 def resize_for_preview(
@@ -148,47 +133,6 @@ def resize_for_preview(
     new_height = int(height * scale)
     
     return image.resize((new_width, new_height), Image.LANCZOS)
-
-
-def validate_image_file(file_path: str) -> bool:
-    """check if file is a valid image"""
-    try:
-        with Image.open(file_path) as img:
-            img.verify()
-        return True
-    except Exception:
-        return False
-
-
-def find_nearest_color_lab(
-    pixel_rgb: np.ndarray,
-    palette_rgb: np.ndarray,
-    palette_lab: Optional[np.ndarray] = None
-) -> Tuple[int, int, int]:
-    """find nearest palette color using LAB color space"""
-    if HAS_SKIMAGE and palette_lab is not None:
-        pixel_normalized = pixel_rgb.reshape(1, 1, 3).astype(np.float32) / 255.0
-        pixel_lab = skimage_color.rgb2lab(pixel_normalized).flatten()
-        
-        distances = np.linalg.norm(palette_lab - pixel_lab, axis=1)
-        nearest_idx = np.argmin(distances)
-    else:
-        nearest_idx = find_nearest_color_weighted_rgb(pixel_rgb, palette_rgb)
-    
-    return tuple(palette_rgb[nearest_idx])
-
-
-def find_nearest_color_weighted_rgb(
-    pixel_rgb: np.ndarray,
-    palette_rgb: np.ndarray
-) -> int:
-    """find nearest color using weighted rgb (green weighted more)"""
-    weights = np.array([2, 4, 3], dtype=np.float32)
-    
-    diff = palette_rgb.astype(np.float32) - pixel_rgb.astype(np.float32)
-    distances = np.sum(weights * (diff ** 2), axis=1)
-    
-    return np.argmin(distances)
 
 
 def find_nearest_color_bulk(
