@@ -49,7 +49,7 @@ _LAB_PALETTE_CACHE: Optional[np.ndarray] = None
 
 
 def _get_lab_palette() -> np.ndarray:
-    """get palette in LAB color space (cached)"""
+    """get palette in LAB color space (in cache)"""
     global _LAB_PALETTE_CACHE
     
     if _LAB_PALETTE_CACHE is not None:

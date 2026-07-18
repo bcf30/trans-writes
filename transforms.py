@@ -8,7 +8,7 @@ from utils import (
     HAS_SKIMAGE
 )
 
-# numba is optional but gives big speedup
+# numba is optional but gives big speedup (just install it brah)
 try:
     from numba import jit, prange
     HAS_NUMBA = True
@@ -134,7 +134,7 @@ def _dither_atkinson_numba(pixels: np.ndarray, palette: np.ndarray) -> np.ndarra
 
 @jit(nopython=True, parallel=True, cache=True)
 def _dither_ordered_numba(pixels: np.ndarray, palette: np.ndarray, bayer: np.ndarray) -> np.ndarray:
-    """ordered (bayer) dithering - parallelized"""
+    """ordered (bayer) dithering"""
     height, width = pixels.shape[:2]
     output = np.empty((height, width, 3), dtype=np.uint8)
     
@@ -313,7 +313,7 @@ def apply_transforms(
     pixelation: int = 1,
     invert: bool = False
 ) -> Image.Image:
-    """apply all transformations - dithering then pixelation"""
+    """apply all transformations (dither then pixelate)"""
     palette = INVERTED_PALETTE if invert else None
 
     if image.mode != 'RGB':

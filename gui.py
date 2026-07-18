@@ -33,7 +33,7 @@ COLOR_FRAME_BG = COLOR_WHITE
 
 
 class TransWritesApp:
-    """main app class - handles the UI and image transformations"""
+    """main app class... handles the UI and image transformations"""
     
     def __init__(self, root: tk.Tk):
         self.root = root
@@ -91,7 +91,7 @@ class TransWritesApp:
         self._create_info_panel()
     
     def _create_flag_banner(self) -> None:
-        """trans flag banner - 5 stripes: blue-pink-white-pink-blue"""
+        """trans flag banner: blue-pink-white-pink-blue"""
         banner_frame = tk.Frame(self.main_frame, height=10)
         banner_frame.pack(fill=tk.X)
         banner_frame.pack_propagate(False)
@@ -122,7 +122,7 @@ class TransWritesApp:
         title_label.pack(expand=True)
     
     def _create_content_area(self) -> None:
-        """main content area - controls and preview"""
+        """main content area... controls and preview"""
         content_frame = ttk.Frame(self.main_frame, style='Trans.TFrame', padding=10)
         content_frame.pack(fill=tk.BOTH, expand=True)
         
@@ -811,14 +811,12 @@ class TransWritesApp:
             "About trans-writes",
             "trans-writes\n\n"
             "An interactive image transformation tool that converts images "
-            "to use an expanded transgender flag palette for both beauty and compression.\n\n"
+            "to use an expanded transgender flag palette for both beauty and data compression... cuz save the environment yk?\n\n"
             "Features:\n"
             "- 7-color expanded trans flag palette\n"
             "- Floyd-Steinberg, Atkinson, and Ordered dithering\n"
             "- Pixelation effects\n"
             "- Export to PNG, BMP, WebP, JPEG XL\n\n"
-            "TRANS RIGHTS!!!!\n\n"
-            "Can you believe that GLM-5 (Chinese AI) wrote that \"TRANS RIGHTS!!!!\" text by itself?"
         )
     
     def _toggle_invert(self) -> None:

@@ -4,7 +4,7 @@ from tkinter import messagebox
 
 
 def check_dependencies() -> bool:
-    """Return whether the packages needed to start the app are installed."""
+    """return whether the packages needed to start the app are installed"""
     missing_packages = []
     
     try:
@@ -28,7 +28,7 @@ def check_dependencies() -> bool:
 
 
 def main() -> None:
-    """Create the window and run the app."""
+    """create the window and run the app"""
     if not check_dependencies():
         sys.exit(1)
 
