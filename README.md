@@ -45,21 +45,9 @@ More examples of before-after, varying dithering and file format:
 - scikit-image (recommended for better color matching)
 - numba (recommended for faster processing)
 
-### Expanded Palette Colors
-
-| Color Name          | Hex Code | RGB              |
-|---------------------|----------|------------------|
-| Light Blue          | #5bcefa  | (91, 206, 250)   |
-| Medium Blue         | #96dcfa  | (150, 220, 250)  |
-| Very Light Blue     | #c8ebff  | (200, 235, 255)  |
-| White               | #ffffff  | (255, 255, 255)  |
-| Very Light Pink     | #ffdcf0  | (255, 220, 240)  |
-| Light Pink          | #f5a9b8  | (245, 169, 184)  |
-| Darker Pink         | #d96c9e  | (217, 108, 158)  |
-
 ### Color Matching Methods
 
-#### LAB Color Space (Recommended)
+#### LAB Color Space
 When scikit-image is installed, the app uses LAB color space for matching. LAB distance closely matches human perception, producing more natural color mapping.
 
 #### Weighted RGB Fallback
@@ -84,5 +72,3 @@ Sharper look with less error distribution:
 
 #### Ordered (Bayer 4×4)
 Crosshatch pattern using threshold matrix.
-
-Proudly made using AI.
